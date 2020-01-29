@@ -35,7 +35,7 @@ scene.add(new AmbientLight(0x404040, 1.5));
 const light = new DirectionalLight();
 scene.add(light);
 
-threeGltfVariantLoader('./assets/variant.glb', variantSwitcher => {
+threeGltfVariantLoader('./assets/variant.glb', (variantSwitcher, gltf) => {
   function switchTag(tag: string) {
     variantSwitcher.switchMaterial([tag], gltf => {
       if (currentVariantScene) {
@@ -49,9 +49,15 @@ threeGltfVariantLoader('./assets/variant.glb', variantSwitcher => {
     });
   }
 
-  const datGuiState = {tag: variantSwitcher.materialTags[0]};
-  gui.add(datGuiState, 'tag', variantSwitcher.materialTags).onChange(switchTag);
+  const datGuiState = {tag: ''};
+  gui
+    .add(datGuiState, 'tag', [''].concat(variantSwitcher.materialTags))
+    .onChange(switchTag);
   switchTag(datGuiState.tag);
+
+  currentVariantScene = gltf.scene;
+  light.target = currentVariantScene;
+  scene.add(currentVariantScene);
 });
 
 window.addEventListener('resize', (event: UIEvent) => {

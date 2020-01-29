@@ -10,7 +10,7 @@ import updatePrimitive from './update-primitive';
 
 export default function load(
   url: string,
-  onComplete: (variantLoader: IVariantLoader) => void,
+  onComplete: (variantLoader: IVariantLoader, gltf: ThreeGLTF) => void,
   onProgress?: (event: ProgressEvent) => void,
   onError?: (event: ErrorEvent) => void
 ) {
@@ -23,35 +23,38 @@ export default function load(
 
     cacheIndices(originalJSON, meshesWithExtension, primitivesWithExtension);
 
-    onComplete({
-      materialTags: getUniqueMaterialTags(
-        gltf.parser.json as IGLTF,
-        meshesWithExtension,
-        primitivesWithExtension
-      ),
-      switchMaterial(
-        tags: string[],
-        onParseComplete: (gltf: ThreeGLTF) => void,
-        onParseError?: (event: ErrorEvent) => void
-      ): void {
-        const newJSON: IGLTF = JSON.parse(JSON.stringify(originalJSON));
+    onComplete(
+      {
+        materialTags: getUniqueMaterialTags(
+          gltf.parser.json as IGLTF,
+          meshesWithExtension,
+          primitivesWithExtension
+        ),
+        switchMaterial(
+          tags: string[],
+          onParseComplete: (gltf: ThreeGLTF) => void,
+          onParseError?: (event: ErrorEvent) => void
+        ): void {
+          const newJSON: IGLTF = JSON.parse(JSON.stringify(originalJSON));
 
-        meshesWithExtension.forEach(meshIndex => {
-          primitivesWithExtension[meshIndex].forEach(primitiveIndex => {
-            const originalPrimitive =
-              originalJSON.meshes[meshIndex].primitives[primitiveIndex];
-            const primitiveToUpdate =
-              newJSON.meshes[meshIndex].primitives[primitiveIndex];
-            updatePrimitive(tags, primitiveToUpdate, originalPrimitive);
+          meshesWithExtension.forEach(meshIndex => {
+            primitivesWithExtension[meshIndex].forEach(primitiveIndex => {
+              const originalPrimitive =
+                originalJSON.meshes[meshIndex].primitives[primitiveIndex];
+              const primitiveToUpdate =
+                newJSON.meshes[meshIndex].primitives[primitiveIndex];
+              updatePrimitive(tags, primitiveToUpdate, originalPrimitive);
+            });
           });
-        });
 
-        gltf.parser.json = newJSON;
+          gltf.parser.json = newJSON;
 
-        // it seems that parse function isn't define in the types definition for Three
-        (gltf as any).parser.parse(onParseComplete, onParseError);
+          // it seems that parse function isn't define in the types definition for Three
+          (gltf as any).parser.parse(onParseComplete, onParseError);
+        },
       },
-    });
+      gltf
+    );
   }
 
   const loader = new GLTFLoader();
