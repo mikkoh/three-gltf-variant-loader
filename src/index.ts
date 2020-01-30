@@ -9,7 +9,7 @@ import {IVariantLoader} from './types';
 import updatePrimitive from './update-primitive';
 
 export default function load(
-  url: string,
+  urlOrBuffer: string | ArrayBuffer,
   onComplete: (variantLoader: IVariantLoader, gltf: ThreeGLTF) => void,
   onProgress?: (event: ProgressEvent) => void,
   onError?: (event: ErrorEvent) => void
@@ -58,5 +58,10 @@ export default function load(
   }
 
   const loader = new GLTFLoader();
-  loader.load(url, onLoadComplete, onProgress, onError);
+
+  if (typeof urlOrBuffer === 'string') {
+    loader.load(urlOrBuffer as string, onLoadComplete, onProgress, onError);
+  } else {
+    loader.parse(urlOrBuffer as ArrayBuffer, '', onLoadComplete, onError);
+  }
 }

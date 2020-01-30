@@ -224,14 +224,13 @@
                 {
                   "material": 0,
                   "tags": [
-                    "red"
+                    "red",
+                    "glossy"
                   ]
                 },
                 {
                   "material": 1,
-                  "tags": [
-                    "not_red"
-                  ]
+                  "tags": "red_glossy"
                 }
               ]
             }
