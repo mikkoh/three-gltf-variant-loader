@@ -6,16 +6,29 @@ import {
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
+  FloatType,
+  Texture,
+  WebGLRenderTarget,
+  MeshStandardMaterial,
+  Mesh,
 } from 'three';
 import {GLTF as ThreeGLTF} from 'three/examples/jsm/loaders/GLTFLoader';
+import {EXRLoader} from 'three/examples/jsm/loaders/EXRLoader';
+import {PMREMGenerator,} from 'three/src/extras/PMREMGenerator';
 import threeGltfVariantLoader from '../src';
 import dragDropConvert from './src/drag-drop-convert';
 import {IVariantLoader} from '../src/types';
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const renderer = new WebGLRenderer({canvas});
+
+const pmremGenerator = new PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+
 let currentVariantScene: Scene;
 let currentGltfArrayBuffer: ArrayBuffer;
+let exrCubeRenderTarget: WebGLRenderTarget;
+let exrBackground: Texture;
 
 renderer.setSize(canvas.offsetWidth, canvas.offsetHeight, false);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -40,6 +53,16 @@ camera.position.z = 5;
 scene.add(new AmbientLight(0x404040, 1.5));
 const light = new DirectionalLight();
 scene.add(light);
+
+new EXRLoader()
+  .setDataType(FloatType)
+  .load('assets/shopify_foyer.exr',
+  (texture: Texture) => {
+    exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
+    exrBackground = exrCubeRenderTarget.texture;
+    texture.dispose();
+  }
+);
 
 function download() {
   const blob = new Blob([new Uint8Array(currentGltfArrayBuffer)], {
@@ -114,6 +137,15 @@ function render() {
     currentVariantScene.rotation.x += 0.01;
     currentVariantScene.rotation.y += 0.01;
   }
+
+  if (currentVariantScene && exrCubeRenderTarget) {
+    const root = (currentVariantScene.children[0] as Mesh);
+    const material = (root.material as MeshStandardMaterial);
+    material.envMap = exrCubeRenderTarget.texture;
+    material.needsUpdate = true;
+  }
+
+  scene.background = exrBackground;
 
   renderer.setClearColor(0xffffff);
   renderer.clearColor();
