@@ -11,10 +11,13 @@ import {
   WebGLRenderTarget,
   MeshStandardMaterial,
   Mesh,
+  Object3D,
+  Box3,
+  Vector3,
 } from 'three';
 import {GLTF as ThreeGLTF} from 'three/examples/jsm/loaders/GLTFLoader';
 import {EXRLoader} from 'three/examples/jsm/loaders/EXRLoader';
-import {PMREMGenerator,} from 'three/src/extras/PMREMGenerator';
+import {PMREMGenerator} from 'three/src/extras/PMREMGenerator';
 import threeGltfVariantLoader from '../src';
 import dragDropConvert from './src/drag-drop-convert';
 import {IVariantLoader} from '../src/types';
@@ -56,13 +59,29 @@ scene.add(light);
 
 new EXRLoader()
   .setDataType(FloatType)
-  .load('assets/shopify_foyer.exr',
-  (texture: Texture) => {
+  .load('assets/shopify_foyer.exr', (texture: Texture) => {
     exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
     exrBackground = exrCubeRenderTarget.texture;
     texture.dispose();
-  }
-);
+  });
+
+function frameObject(object: Object3D) {
+  object.updateMatrixWorld();
+
+  const box = new Box3().setFromObject(object);
+  const size = box.getSize(new Vector3()).length();
+  const center = box.getCenter(new Vector3());
+
+  camera.near = size / 100;
+  camera.far = size * 100;
+  camera.updateProjectionMatrix();
+
+  camera.position.copy(center);
+  camera.position.x += size / 2.0;
+  camera.position.y += size / 5.0;
+  camera.position.z += size / 1.0;
+  camera.lookAt(center);
+}
 
 function download() {
   const blob = new Blob([new Uint8Array(currentGltfArrayBuffer)], {
@@ -90,6 +109,7 @@ function variantLoadingComplete(
       light.target = currentVariantScene;
 
       scene.add(currentVariantScene);
+      frameObject(currentVariantScene);
     });
   }
 
@@ -117,6 +137,7 @@ function variantLoadingComplete(
   currentVariantScene = gltf.scene;
   light.target = currentVariantScene;
   scene.add(currentVariantScene);
+  frameObject(currentVariantScene);
 }
 
 const container = document.querySelector('#container') as HTMLDivElement;
@@ -139,10 +160,14 @@ function render() {
   }
 
   if (currentVariantScene && exrCubeRenderTarget) {
-    const root = (currentVariantScene.children[0] as Mesh);
-    const material = (root.material as MeshStandardMaterial);
-    material.envMap = exrCubeRenderTarget.texture;
-    material.needsUpdate = true;
+    currentVariantScene.traverse((child: Object3D) => {
+      if (child.type === 'Mesh') {
+        const mesh = child as Mesh;
+        const material = mesh.material as MeshStandardMaterial;
+        material.envMap = exrCubeRenderTarget.texture;
+        material.needsUpdate = true;
+      }
+    });
   }
 
   scene.background = exrBackground;
