@@ -13,7 +13,11 @@ function getTagsFromFiles(files: FileList): string[] {
 
   for (let i = 0; i < files.length; i++) {
     const file: File = files.item(i);
-    tags.push(file.name);
+    const fileNameWithoutExtension = file.name
+      .split('.')
+      .slice(0, -1)
+      .join('.');
+    tags.push(fileNameWithoutExtension);
   }
 
   return tags;
