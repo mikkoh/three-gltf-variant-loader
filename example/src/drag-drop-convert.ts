@@ -73,29 +73,43 @@ export default function dragDropConvert(
     }
 
     const arrayBuffers = await getArrayBuffersFromFiles(files);
+
+    if (arrayBuffers.length === 1) {
+      callback(arrayBuffers[0]);
+      return;
+    }
+
     const tags = getTagsFromFiles(files);
     files = null;
-    const meldedGLB = combineArrayBuffersIntoMeldedGLTFs(tags, arrayBuffers);
 
-    callback(meldedGLB.buffer);
+    try {
+      const meldedGLB = combineArrayBuffersIntoMeldedGLTFs(tags, arrayBuffers);
+      callback(meldedGLB.buffer);
+    } catch (error) {
+      throw error;
+    }
   }
 
   container.addEventListener('dragover', ev => {
     ev.preventDefault();
   });
 
-  container.addEventListener('drop', async (ev: DragEvent) => {
+  container.addEventListener('drop', (ev: DragEvent) => {
     ev.preventDefault();
 
     files = ev.dataTransfer.files;
 
-    meldFiles();
+    meldFiles().catch(error => {
+      throw error;
+    });
   });
 
   initGLTFMeld()
     .then(() => {
       gltfMeldIsInitialized = true;
-      meldFiles();
+      meldFiles().catch(error => {
+        throw error;
+      });
     })
     .catch((error: Error) => {
       throw error;
