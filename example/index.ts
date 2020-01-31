@@ -11,6 +11,9 @@ import {
   WebGLRenderTarget,
   MeshStandardMaterial,
   Mesh,
+  Object3D,
+  Box3,
+  Vector3,
 } from 'three';
 import {
   EXRLoader,
@@ -62,6 +65,24 @@ new EXRLoader()
   }
 );
 
+function frameObject(object: Object3D) {
+  object.updateMatrixWorld();
+
+  const box = new Box3().setFromObject(object);
+  const size = box.getSize(new Vector3()).length();
+  const center = box.getCenter(new Vector3());
+
+  camera.near = size / 100;
+  camera.far = size * 100;
+  camera.updateProjectionMatrix();
+
+  camera.position.copy(center);
+  camera.position.x += size / 2.0;
+  camera.position.y += size / 5.0;
+  camera.position.z += size / 1.0;
+  camera.lookAt(center);
+}
+
 threeGltfVariantLoader('./assets/variant.glb', (variantSwitcher, gltf) => {
   function switchTag(tag: string) {
     variantSwitcher.switchMaterial([tag], gltf => {
@@ -73,6 +94,7 @@ threeGltfVariantLoader('./assets/variant.glb', (variantSwitcher, gltf) => {
       light.target = currentVariantScene;
 
       scene.add(currentVariantScene);
+      frameObject(currentVariantScene);
     });
   }
 
@@ -85,6 +107,7 @@ threeGltfVariantLoader('./assets/variant.glb', (variantSwitcher, gltf) => {
   currentVariantScene = gltf.scene;
   light.target = currentVariantScene;
   scene.add(currentVariantScene);
+  frameObject(currentVariantScene);
 });
 
 window.addEventListener('resize', (event: UIEvent) => {
@@ -101,10 +124,14 @@ function render() {
   }
 
   if (currentVariantScene && exrCubeRenderTarget) {
-    const root = (currentVariantScene.children[0] as Mesh);
-    const material = (root.material as MeshStandardMaterial);
-    material.envMap = exrCubeRenderTarget.texture;
-    material.needsUpdate = true;
+    currentVariantScene.traverse((child: Object3D) => {
+      if (child.type === 'Mesh') {
+        const mesh = (child as Mesh);
+        const material = (mesh.material as MeshStandardMaterial);
+        material.envMap = exrCubeRenderTarget.texture;
+        material.needsUpdate = true;
+      }
+    });
   }
 
   scene.background = exrBackground;
