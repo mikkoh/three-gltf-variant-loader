@@ -12,7 +12,7 @@ export default function cacheIndices(
     }
 
     mesh.primitives.forEach((primitive: any, primitiveIndex: number) => {
-      if (!primitive.extensions && !primitive.extensions[EXTENSION_NAME]) {
+      if (!primitive.extensions || !primitive.extensions[EXTENSION_NAME]) {
         return;
       }
 
