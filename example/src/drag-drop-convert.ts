@@ -45,15 +45,36 @@ function combineArrayBuffersIntoMeldedGLTFs(
   arrayBuffers: ArrayBuffer[]
 ): Uint8Array {
   const assets = arrayBuffers.map((buffer, index) => {
-    const tag = tags[index];
-    return VariationalAsset.wasm_from_slice(new Uint8Array(buffer), tag);
+    let asset = null;
+
+    try {
+      // attempt to create an asset and assume it's already tagged
+      // an exception will be thrown when an a glb has no tags
+      asset = VariationalAsset.wasm_from_slice(new Uint8Array(buffer));
+    } catch (error) {
+      // since an exception was thrown we'll need to tag the model
+      asset = VariationalAsset.wasm_from_slice(
+        new Uint8Array(buffer),
+        tags[index]
+      );
+    }
+
+    return asset;
   });
-  const meldedAssets = assets.reduce((meldedAssets, asset) => {
+
+  const meldedAssets = assets.reduce((meldedAssets, asset, index) => {
     if (!meldedAssets) {
       return asset;
     }
 
-    return VariationalAsset.wasm_meld(meldedAssets, asset);
+    try {
+      return VariationalAsset.wasm_meld(meldedAssets, asset);
+    } catch (error) {
+      console.log(
+        `${tags[index]} could not be melded. Likely because either meshes/materials did not match enough`
+      );
+      return meldedAssets;
+    }
   }, null);
 
   return meldedAssets.wasm_glb();
