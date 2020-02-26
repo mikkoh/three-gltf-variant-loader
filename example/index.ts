@@ -99,8 +99,8 @@ function variantLoadingComplete(
   variantSwitcher: IVariantLoader,
   gltf: ThreeGLTF
 ) {
-  function switchTag(tag: string) {
-    variantSwitcher.switchMaterial([tag], gltf => {
+  function switchTags(tags: string[]) {
+    variantSwitcher.switchMaterial(tags, gltf => {
       if (currentVariantScene) {
         scene.remove(currentVariantScene);
       }
@@ -112,6 +112,7 @@ function variantLoadingComplete(
       frameObject(currentVariantScene);
     });
   }
+  (window as any).switchTags = switchTags;
 
   const hasBeenInitialized = Boolean(datTagController);
 
@@ -126,13 +127,13 @@ function variantLoadingComplete(
   datGuiState.tag = '';
   datTagController = gui
     .add(datGuiState, 'tag', [''].concat(variantSwitcher.materialTags))
-    .onChange(switchTag);
+    .onChange(switchTags);
 
   if (!hasBeenInitialized) {
     gui.add(datGuiState, 'download');
   }
 
-  switchTag(datGuiState.tag);
+  switchTags([datGuiState.tag]);
 
   currentVariantScene = gltf.scene;
   light.target = currentVariantScene;
